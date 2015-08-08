@@ -15,6 +15,27 @@ argparser.addArgument(
   required: true
 )
 argparser.addArgument(
+  ['--since', '-s']
+  type: 'string'
+  help: 'Since date (YYYY-MM-DD)'
+  required: true
+  dest: 'since'
+)
+argparser.addArgument(
+  ['--till', '-t']
+  type: 'string'
+  help: 'Until date (YYYY-MM-DD)'
+  required: true
+  dest: 'till'
+)
+argparser.addArgument(
+  ['--minPostId', '-m']
+  type: 'string'
+  help: 'Max_id'
+  defaultValue: 0
+  dest: '_minPostId'
+)
+argparser.addArgument(
   ['--no-retweets']
   action: 'storeFalse'
   help: 'Ignore retweets'

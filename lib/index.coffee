@@ -3,7 +3,7 @@
 Readable = require('readable-stream').Readable
 cheerio = require 'cheerio'
 request = require 'request-promise'
-
+#require('request-promise').debug = true 
 ACTIONS = ['reply', 'retweet', 'favorite']
 
 ###*
@@ -14,10 +14,17 @@ ACTIONS = ['reply', 'retweet', 'favorite']
    from the last request), or undefined if this is the first request.
  * @return {Array} An array of elements.
 ###
-getPostElements = (username, startingId) ->
+getPostElements = (username, since, till, startingId) ->
   request.get(
-    uri: "https://twitter.com/i/profiles/show/#{username}/timeline"
+    #uri: "https://twitter.com/i/profiles/show/#{username}/timeline"
+    uri: "https://twitter.com/i/search/timeline"
     qs:
+      #'include_available_features': '1'
+      #'include_entities': '1'
+      #'max_position': startingId
+      'f' : 'tweets'
+      'vertical' : 'default'
+      'q' : "from:#{username} since:#{since} until:#{till}" #" max_id:#{startingId}"
       'include_available_features': '1'
       'include_entities': '1'
       'max_position': startingId
@@ -33,7 +40,7 @@ class TwitterPosts extends Readable
   _lock: false
   _minPostId: undefined
 
-  constructor: ({@username, @retweets}) ->
+  constructor: ({@username, @since, @till, @_minPostId, @retweets}) ->
     @retweets ?= true
     # remove the explicit HWM setting when github.com/nodejs/node/commit/e1fec22
     # is merged into readable-stream
@@ -50,16 +57,20 @@ class TwitterPosts extends Readable
       return
 
     hasMorePosts = undefined
+    count = undefined
 
     # we hold one post in a buffer because we need something to send directly
     # after we turn off the lock
     lastPost = undefined
-
-    getPostElements(@username, @_minPostId).then((response) ->
+    getPostElements(@username, @since, @till, @_minPostId).then((response) ->
       response = JSON.parse(response)
+      # fs = require "fs"
+      # fs.writeFile "classification.json", JSON.stringify(response), (error) ->
+      #   console.error("Error writing file", error) if error
       html = response['items_html'].trim()
       # response['has_more_items'] is a lie, as of 2015-07-13
       hasMorePosts = html isnt ''
+      debugger
       cheerio.load(html)
     ).then(($) =>
       hasEmitted = false
@@ -69,6 +80,7 @@ class TwitterPosts extends Readable
         # we get the id & set it as _minPostId before skipping retweets because
         # the lowest id might be a retweet, or all the tweets in this page might
         # be retweets
+        count++
         id = $(element).attr('data-item-id')
         @_minPostId = id # only the last one really matters
 
@@ -77,6 +89,7 @@ class TwitterPosts extends Readable
           continue # skip retweet
 
         post = {
+          count : count
           id: id
           isRetweet: isRetweet
           username: @username
