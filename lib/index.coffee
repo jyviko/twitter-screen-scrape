@@ -3,7 +3,7 @@
 Readable = require('readable-stream').Readable
 cheerio = require 'cheerio'
 request = require 'request-promise'
-#require('request-promise').debug = true 
+# require('request-promise').debug = true 
 ACTIONS = ['reply', 'retweet', 'favorite']
 
 ###*
@@ -24,10 +24,7 @@ getPostElements = (username, since, till, startingId) ->
       #'max_position': startingId
       'f' : 'tweets'
       'vertical' : 'default'
-      'q' : "from:#{username} since:#{since} until:#{till}" #" max_id:#{startingId}"
-      'include_available_features': '1'
-      'include_entities': '1'
-      'max_position': startingId
+      'q' : "from:#{username} since:#{since} until:#{till} max_id:#{startingId}"
   )
 
 ###*
@@ -38,7 +35,8 @@ getPostElements = (username, since, till, startingId) ->
 ###
 class TwitterPosts extends Readable
   _lock: false
-  _minPostId: undefined
+  _minPostId: 0
+  _count: 0
 
   constructor: ({@username, @since, @till, @_minPostId, @retweets}) ->
     @retweets ?= true
@@ -46,6 +44,7 @@ class TwitterPosts extends Readable
     # is merged into readable-stream
     super(highWaterMark: 16, objectMode: true)
     @_readableState.destroyed = false
+    @_minPostId = 0
 
   _read: =>
     # prevent additional requests from being made while one is already running
@@ -57,7 +56,6 @@ class TwitterPosts extends Readable
       return
 
     hasMorePosts = undefined
-    count = undefined
 
     # we hold one post in a buffer because we need something to send directly
     # after we turn off the lock
@@ -70,7 +68,7 @@ class TwitterPosts extends Readable
       html = response['items_html'].trim()
       # response['has_more_items'] is a lie, as of 2015-07-13
       hasMorePosts = html isnt ''
-      debugger
+
       cheerio.load(html)
     ).then(($) =>
       hasEmitted = false
@@ -80,21 +78,21 @@ class TwitterPosts extends Readable
         # we get the id & set it as _minPostId before skipping retweets because
         # the lowest id might be a retweet, or all the tweets in this page might
         # be retweets
-        count++
+        @_count = @_count + 1
         id = $(element).attr('data-item-id')
-        @_minPostId = id # only the last one really matters
+        @_minPostId = id.substr(0,id.length-3) + (parseInt(id.substr(id.length-3,3),10)-1)  # only the last one really matters
 
         isRetweet = $(element).find('.js-retweet-text').length isnt 0
         if not @retweets and isRetweet
           continue # skip retweet
 
         post = {
-          count : count
+          count : @_count
           id: id
           isRetweet: isRetweet
           username: @username
           text: $(element).find('.tweet-text').first().text()
-          time: +$(element).find('.js-short-timestamp').first().attr('data-time')
+          time:  +$(element).find('.js-short-timestamp').first().attr('data-time')
           images: []
         }
 
