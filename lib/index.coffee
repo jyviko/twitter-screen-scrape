@@ -100,7 +100,7 @@ class TwitterPosts extends Readable
           isRetweet: isRetweet
           username: @username
           text: $(element).find('.tweet-text').first().text()
-          time:  +$(element).find('.js-short-timestamp').first().attr('data-time')
+          time: +$(element).find('.js-short-timestamp').first().attr('data-time')
           images: []
         }
 
