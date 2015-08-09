@@ -32,7 +32,7 @@ argparser.addArgument(
   ['--no-retweets']
   action: 'storeFalse'
   help: 'Ignore retweets'
-  defaultValue: false
+  defaultValue: true
   dest: 'retweets'
 )
 

@@ -3,6 +3,8 @@
 Readable = require('readable-stream').Readable
 cheerio = require 'cheerio'
 request = require 'request-promise'
+bigInt = require 'big-integer'
+
 # require('request-promise').debug = true 
 ACTIONS = ['reply', 'retweet', 'favorite']
 
@@ -24,9 +26,16 @@ getPostElements = (username, since, till, startingId) ->
       #'max_position': startingId
       'f' : 'tweets'
       'vertical' : 'default'
-      'q' : "from:#{username} since:#{since} until:#{till} max_id:#{startingId}"
+      'q' : "from:#{username} since:#{since} until:#{till} max_id:#{startingId} include:retweets"
   )
-
+# getPostElements = (username, since, startingId) ->
+#   request.get(
+#     uri: "https://twitter.com/i/search/timeline"
+#     qs:
+#       'f' : 'tweets'
+#       'vertical' : 'default'
+#       'q' : "from:#{username} since:#{since} max_id:#{startingId} include:retweets"
+#   )
 ###*
  * Stream that scrapes as many tweets as possible for a given user.
  * @param {String} options.username
@@ -62,9 +71,6 @@ class TwitterPosts extends Readable
     lastPost = undefined
     getPostElements(@username, @since, @till, @_minPostId).then((response) ->
       response = JSON.parse(response)
-      # fs = require "fs"
-      # fs.writeFile "classification.json", JSON.stringify(response), (error) ->
-      #   console.error("Error writing file", error) if error
       html = response['items_html'].trim()
       # response['has_more_items'] is a lie, as of 2015-07-13
       hasMorePosts = html isnt ''
@@ -80,7 +86,9 @@ class TwitterPosts extends Readable
         # be retweets
         @_count = @_count + 1
         id = $(element).attr('data-item-id')
-        @_minPostId = id.substr(0,id.length-3) + (parseInt(id.substr(id.length-3,3),10)-1)  # only the last one really matters
+        # debugger
+        idBig = new bigInt(id, 10).minus(1)
+        @_minPostId = idBig.toString()  # only the last one really matters
 
         isRetweet = $(element).find('.js-retweet-text').length isnt 0
         if not @retweets and isRetweet
@@ -124,10 +132,14 @@ class TwitterPosts extends Readable
       if lastPost?
         @push(lastPost)
         hasEmitted = true
-      if not hasMorePosts then @push(null)
+        # debugger
+      if not hasMorePosts
+        @push(null)
+        debugger
       if not hasEmitted and hasMorePosts
         # since we haven't emitted anything, we need to get the next page right
         # now, because there won't be a read call to trigger us
+        debugger
         @_read()
     )
 
