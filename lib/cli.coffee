@@ -29,6 +29,14 @@ argparser.addArgument(
   dest: 'till'
 )
 argparser.addArgument(
+  ['--type']
+  type: 'string'
+  help: 'By username or mentions'
+  defaultValue: 'username'
+  required: false
+  dest: 'type'
+)
+argparser.addArgument(
   ['--no-retweets']
   action: 'storeFalse'
   help: 'Ignore retweets'

@@ -16,18 +16,33 @@ ACTIONS = ['reply', 'retweet', 'favorite']
    from the last request), or undefined if this is the first request.
  * @return {Array} An array of elements.
 ###
-getPostElements = (username, since, till, startingId) ->
-  request.get(
-    #uri: "https://twitter.com/i/profiles/show/#{username}/timeline"
-    uri: "https://twitter.com/i/search/timeline"
-    qs:
-      #'include_available_features': '1'
-      #'include_entities': '1'
-      #'max_position': startingId
-      'f' : 'tweets'
-      'vertical' : 'default'
-      'q' : "from:#{username} since:#{since} until:#{till} max_id:#{startingId} include:retweets"
-  )
+getPostElements = (username, since, till, startingId, searchType = 'screenname') ->
+  switch searchType 
+    when 'username'
+      request.get(
+        #uri: "https://twitter.com/i/profiles/show/#{username}/timeline"
+        uri: "https://twitter.com/i/search/timeline"
+        qs:
+          #'include_available_features': '1'
+          #'include_entities': '1'
+          #'max_position': startingId
+          'f' : 'tweets'
+          'vertical' : 'default'
+          'q' : "from:#{username} since:#{since} until:#{till} max_id:#{startingId} include:retweets"
+      )
+    when 'mentions' 
+      username = '@'+username
+      request.get(
+        #uri: "https://twitter.com/i/profiles/show/#{username}/timeline"
+        uri: "https://twitter.com/i/search/timeline"
+        qs:
+          #'include_available_features': '1'
+          #'include_entities': '1'
+          #'max_position': startingId
+          'f' : 'tweets'
+          'vertical' : 'default'
+          'q' : "#{username} since:#{since} until:#{till} max_id:#{startingId} include:retweets"
+      )
 # getPostElements = (username, since, startingId) ->
 #   request.get(
 #     uri: "https://twitter.com/i/search/timeline"
@@ -47,7 +62,7 @@ class TwitterPosts extends Readable
   _minPostId: 0
   _count: 0
 
-  constructor: ({@username, @since, @till, @_minPostId, @retweets}) ->
+  constructor: ({@username, @since, @till, @_minPostId, @type, @retweets}) ->
     @retweets ?= true
     # remove the explicit HWM setting when github.com/nodejs/node/commit/e1fec22
     # is merged into readable-stream
@@ -69,7 +84,7 @@ class TwitterPosts extends Readable
     # we hold one post in a buffer because we need something to send directly
     # after we turn off the lock
     lastPost = undefined
-    getPostElements(@username, @since, @till, @_minPostId).then((response) ->
+    getPostElements(@username, @since, @till, @_minPostId, @type).then((response) ->
       response = JSON.parse(response)
       html = response['items_html'].trim()
       # response['has_more_items'] is a lie, as of 2015-07-13
@@ -89,6 +104,10 @@ class TwitterPosts extends Readable
         # debugger
         idBig = new bigInt(id, 10).minus(1)
         @_minPostId = idBig.toString()  # only the last one really matters
+        
+
+        uname = $(element).attr('data-screen-name')
+        uid = $(element).attr('data-user-id')
 
         isRetweet = $(element).find('.js-retweet-text').length isnt 0
         if not @retweets and isRetweet
@@ -98,7 +117,8 @@ class TwitterPosts extends Readable
           count : @_count
           id: id
           isRetweet: isRetweet
-          username: @username
+          screenname: uname
+          user_id: uid 
           text: $(element).find('.tweet-text').first().text()
           time: +$(element).find('.js-short-timestamp').first().attr('data-time')
           images: []
