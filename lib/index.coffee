@@ -16,7 +16,7 @@ ACTIONS = ['reply', 'retweet', 'favorite']
    from the last request), or undefined if this is the first request.
  * @return {Array} An array of elements.
 ###
-getPostElements = (username, since, till, startingId, searchType = 'screenname') ->
+getPostElements = (username, since, till, startingId, searchType = 'username') ->
   switch searchType 
     when 'username'
       request.get(
@@ -33,7 +33,17 @@ getPostElements = (username, since, till, startingId, searchType = 'screenname')
     when 'mentions' 
       username = '@'+username
       request.get(
-        #uri: "https://twitter.com/i/profiles/show/#{username}/timeline"
+        uri: "https://twitter.com/i/search/timeline"
+        qs:
+          #'include_available_features': '1'
+          #'include_entities': '1'
+          #'max_position': startingId
+          'f' : 'tweets'
+          'vertical' : 'default'
+          'q' : "#{username} since:#{since} until:#{till} max_id:#{startingId} include:retweets"
+      )
+    when 'hashtags' 
+      request.get(
         uri: "https://twitter.com/i/search/timeline"
         qs:
           #'include_available_features': '1'

@@ -9,10 +9,11 @@ argparser = new ArgumentParser(
   description: packageInfo.description
 )
 argparser.addArgument(
-  ['--username', '-u']
+  ['-u']
   type: 'string'
-  help: 'Username of the account to scrape'
+  help: 'Username or hashtag query to scrape'
   required: true
+  dest: 'username'
 )
 argparser.addArgument(
   ['--since', '-s']
@@ -31,7 +32,7 @@ argparser.addArgument(
 argparser.addArgument(
   ['--type']
   type: 'string'
-  help: 'By username or mentions'
+  help: 'By username, mentions or hashtags'
   defaultValue: 'username'
   required: false
   dest: 'type'
