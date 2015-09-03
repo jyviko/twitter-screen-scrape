@@ -102,6 +102,7 @@ class TwitterPosts extends Readable
 
       cheerio.load(html)
     ).then(($) =>
+      debugger
       hasEmitted = false
 
       # query to get all the tweets out of the DOM
@@ -116,41 +117,41 @@ class TwitterPosts extends Readable
         @_minPostId = idBig.toString()  # only the last one really matters
         
 
-        uname = $(element).attr('data-screen-name')
+#        uname = $(element).attr('data-screen-name')
         uid = $(element).attr('data-user-id')
 
-        isRetweet = $(element).find('.js-retweet-text').length isnt 0
-        if not @retweets and isRetweet
-          continue # skip retweet
+#        isRetweet = $(element).find('.js-retweet-text').length isnt 0
+#        if not @retweets and isRetweet
+#          continue # skip retweet
 
         post = {
           count : @_count
           id: id
-          isRetweet: isRetweet
-          screenname: uname
+#          isRetweet: isRetweet
+#          screenname: uname
           user_id: uid 
-          text: $(element).find('.tweet-text').first().text()
+#          text: $(element).find('.tweet-text').first().text()
           time: +$(element).find('.js-short-timestamp').first().attr('data-time')
-          images: []
+#          images: []
         }
 
-        for action in ACTIONS
-          wrapper = $(element).find(
-            ".ProfileTweet-action--#{action} .ProfileTweet-actionCount"
-          )
-          post[action] = (
-            if wrapper.length isnt 0
-              +$(wrapper).first().attr('data-tweet-stat-count')
-            else
-              undefined
-          )
-
-        pics = $(element).find(
-          '.multi-photos .multi-photo[data-url],
-          [data-card-type=photo] [data-url]'
-        )
-        for pic in pics
-          post.images.push $(pic).attr('data-url')
+#        for action in ACTIONS
+#          wrapper = $(element).find(
+#            ".ProfileTweet-action--#{action} .ProfileTweet-actionCount"
+#          )
+#          post[action] = (
+#            if wrapper.length isnt 0
+#              +$(wrapper).first().attr('data-tweet-stat-count')
+#            else
+#              undefined
+#          )
+#
+#        pics = $(element).find(
+#          '.multi-photos .multi-photo[data-url],
+#          [data-card-type=photo] [data-url]'
+#        )
+#        for pic in pics
+#          post.images.push $(pic).attr('data-url')
 
         if lastPost?
           @push(lastPost)
